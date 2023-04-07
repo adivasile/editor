@@ -9,12 +9,13 @@ mod prelude {
     pub use std::time::Duration;
     pub use crossterm::event::*;
     pub use std::path::Path;
-    pub use crossterm::{cursor, event, execute, queue, terminal};
+    pub use crossterm::{cursor, event, execute, queue, terminal, style};
     pub use crossterm::terminal::{*, ClearType};
     pub use crossterm::event::*;
     pub use std::io::{stdout, self};
     pub use std::io::Write;
     pub use std::{cmp, env, fs};
+    pub use std::path::PathBuf;
 
 
     pub const VERSION: &str = "0.0.1";

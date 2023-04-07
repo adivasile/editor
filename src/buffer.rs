@@ -21,6 +21,7 @@ pub struct BufferLine {
 
 pub struct Buffer {
     lines: Vec<BufferLine>,
+    pub file_path: Option<PathBuf>,
     pub line_offset: usize,
 }
 
@@ -29,14 +30,21 @@ impl Buffer {
     pub fn new() -> Self {
         let mut arg = env::args();
 
-        let contents = match arg.nth(1) {
-            None => Vec::new(),
-            Some(file) => Self::read_file(file.as_ref()),
-        };
-
-        Self {
-            lines: contents,
-            line_offset: 0,
+        match arg.nth(1) {
+            None => {
+                Self {
+                    lines: Vec::new(),
+                    file_path: None,
+                    line_offset: 0,
+                }
+            },
+            Some(file) => {
+                Self {
+                    lines: Self::read_file(file.as_ref()),
+                    file_path: Some(file.into()),
+                    line_offset: 0,
+                }
+            }
         }
     }
 

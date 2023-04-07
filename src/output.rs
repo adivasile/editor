@@ -10,7 +10,7 @@ pub struct Frame {
 impl Frame {
     pub fn new() -> Self {
         let win_size = terminal::size()
-            .map(|(x, y)| (x as usize, y as usize))
+            .map(|(x, y)| (x as usize, y as usize - 1))
             .unwrap();
 
         Self {
@@ -43,10 +43,34 @@ impl Frame {
                 self.editor_contents.push('~');
             }
 
-            if i < screen_rows - 1 {
-                self.editor_contents.push_str("\r\n");
-            }
+            self.editor_contents.push_str("\r\n");
         }
+    }
+
+    fn draw_status_bar(&mut self) {
+        self.editor_contents
+            .push_str(&style::Attribute::Reverse.to_string());
+
+        let filename = self.active_buffer.file_path.as_ref()
+            .and_then(|path| path.file_name())
+            .and_then(|name| name.to_str())
+            .unwrap_or("[No name]");
+
+        let info = format!(
+            "{} -- {} lines  {}/{}",
+            filename,
+            self.active_buffer.number_of_lines(),
+            self.cursor_controller.position.line,
+            self.cursor_controller.position.column,
+        );
+
+        self.editor_contents.push_str(&info);
+
+        for i in info.len()..self.win_size.0 {
+            self.editor_contents.push(' ')
+        }
+        self.editor_contents
+            .push_str(&style::Attribute::Reset.to_string());
     }
 
     pub fn clear_screen() -> crossterm::Result<()> {
@@ -62,6 +86,7 @@ impl Frame {
             cursor::MoveTo(0, 0)
         )?;
         self.draw_rows();
+        self.draw_status_bar();
         let (cursor_row, cursor_line) = self.cursor_controller.absolute_coords();
         queue!(
             self.editor_contents,
@@ -89,7 +114,7 @@ impl Frame {
         match direction {
             'h' => self.cursor_controller.move_cursor_left(),
             'j' => {
-                if self.cursor_controller.position.line > self.win_size.1 - 1 {
+                if self.cursor_controller.position.line >= self.win_size.1 - 1 {
                     self.active_buffer.scroll_down();
                 } else {
                     self.cursor_controller.move_cursor_down();
