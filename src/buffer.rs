@@ -1,18 +1,5 @@
 use crate::prelude::*;
 
-// pub struct BufferIter {
-//     curr: &str,
-//     next: Option<&str>,
-// }
-
-// impl Iterator for BufferIter {
-//     type Item = &str;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.curr = self.next;
-//         self.next =
-//     }
-// }
 
 pub struct BufferLine {
     pub line_number: usize,
@@ -25,35 +12,25 @@ pub struct Buffer {
     pub line_offset: usize,
 }
 
-
 impl Buffer {
-    pub fn new() -> Self {
-        let mut arg = env::args();
-
-        match arg.nth(1) {
+    pub fn new(file: Option<PathBuf>) -> Self {
+        match file {
             None => {
                 Self {
-                    lines: Vec::new(),
+                    lines: Self::build_welcome_buffer(),
                     file_path: None,
                     line_offset: 0,
                 }
             },
             Some(file) => {
                 Self {
-                    lines: Self::read_file(file.as_ref()),
+                    lines: Self::read_file(&file),
                     file_path: Some(file.into()),
                     line_offset: 0,
                 }
             }
         }
     }
-
-    // fn iter(&self) -> BufferIter {
-    //     BufferIter {
-    //         curr: &self.row_contents[self.row_offset],
-    //         next: self.get_row(self.row_offset + 1),
-    //     }
-    // }
 
     pub fn read_file(file: &Path) -> Vec<BufferLine> {
         let file_contents = fs::read_to_string(file).expect("Unable to read file");
@@ -66,6 +43,35 @@ impl Buffer {
                     line_number: line_number + 1,
                 }
             );
+        }
+
+        lines
+    }
+
+    pub fn build_welcome_buffer() -> Vec<BufferLine> {
+        let mut lines: Vec<BufferLine> = vec![];
+
+        for i in 0..5 {
+            lines.push(
+                BufferLine {
+                    line_number: i + 1,
+                    line: String::from("~\r")
+                }
+            );
+        }
+
+        let welcome_line = BufferLine {
+            line_number: 6,
+            line: format!("~                 Editor -- Version {}", VERSION),
+        };
+
+        lines.push(welcome_line);
+
+        for i in 6..10 {
+            lines.push(BufferLine {
+                line_number: i + 1,
+                line: String::from("~\r")
+            })
         }
 
         lines

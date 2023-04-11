@@ -1,6 +1,6 @@
 mod reader;
 mod cleanup;
-mod output;
+mod frame;
 mod buffer;
 mod editor_contents;
 mod cursor_controller;
@@ -24,7 +24,7 @@ mod prelude {
 
     pub use crate::reader::*;
     pub use crate::cleanup::*;
-    pub use crate::output::*;
+    pub use crate::frame::*;
     pub use crate::buffer::*;
     pub use crate::editor_contents::*;
     pub use crate::cursor_controller::*;
@@ -39,10 +39,18 @@ struct Editor {
 }
 
 impl Editor {
-    fn new() -> Self {
+    fn new(file: Option<PathBuf>) -> Self {
+        let win_size = terminal::size()
+            .map(|(x, y)| (x as usize, y as usize - 1))
+            .unwrap();
+
         Self {
             reader: Reader,
-            output: Frame::new(),
+            output: Frame::new(
+                win_size.0,
+                win_size.1,
+                file,
+            ),
         }
     }
 
@@ -73,8 +81,17 @@ impl Editor {
 fn main() -> crossterm::Result<()> {
     let _clean_up = CleanUp;
 
+    let args: Vec<String> = env::args().collect();
+
+    println!("{:?}", args);
+
+    let file = match &args[..] {
+        [_, arg] => Some(PathBuf::from(arg)),
+        _ => None,
+    };
+
     terminal::enable_raw_mode()?;
-    let mut editor = Editor::new();
+    let mut editor = Editor::new(file);
     while editor.run()? {}
     Ok(())
 }

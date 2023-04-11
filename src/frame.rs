@@ -1,36 +1,39 @@
 use crate::prelude::*;
 
+pub struct FrameSize {
+    pub columns: usize,
+    pub lines: usize,
+}
+
 pub struct Frame {
-    win_size: (usize, usize),
+    size: FrameSize,
     editor_contents: EditorContents,
     cursor_controller: CursorController,
     active_buffer: Buffer,
 }
 
 impl Frame {
-    pub fn new() -> Self {
-        let win_size = terminal::size()
-            .map(|(x, y)| (x as usize, y as usize - 1))
-            .unwrap();
-
+    pub fn new(columns: usize, lines: usize, file: Option<PathBuf>) -> Self {
+        let size = FrameSize { columns, lines };
         Self {
-            win_size,
             editor_contents: EditorContents::new(),
-            cursor_controller: CursorController::new(win_size),
-            active_buffer: Buffer::new(),
+            cursor_controller: CursorController::new((size.columns, size.lines)),
+            active_buffer: Buffer::new(file),
+            size,
         }
     }
 
     pub fn draw_rows(&mut self) {
-        let screen_rows = self.win_size.1;
-        let screen_columns = self.win_size.0;
+        let screen_lines = self.size.lines;
+        let screen_columns = self.size.columns;
 
         if self.active_buffer.is_blank() {
-            self.editor_contents.push_welcome_message(screen_columns, screen_rows);
+            self.editor_contents.push_welcome_message(screen_columns, screen_lines);
+            self.editor_contents.push_str("\r\n");
             return
         }
 
-        for i in 0..screen_rows {
+        for i in 0..screen_lines {
             if let Some(buffer_line) = self.active_buffer.get_line_with_offset(i) {
                 let render_line = format!(
                     "{:width$} {}",
@@ -66,7 +69,7 @@ impl Frame {
 
         self.editor_contents.push_str(&info);
 
-        for i in info.len()..self.win_size.0 {
+        for i in info.len()..self.size.columns {
             self.editor_contents.push(' ')
         }
         self.editor_contents
@@ -114,7 +117,7 @@ impl Frame {
         match direction {
             'h' => self.cursor_controller.move_cursor_left(),
             'j' => {
-                if self.cursor_controller.position.line >= self.win_size.1 - 1 {
+                if self.cursor_controller.position.line >= self.size.lines - 1 {
                     self.active_buffer.scroll_down();
                 } else {
                     self.cursor_controller.move_cursor_down();
