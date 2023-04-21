@@ -80,11 +80,13 @@ impl Frame {
             .unwrap_or("[No name]");
 
         let info = format!(
-            "{} -- {} lines  {}/{}",
+            "{} -- {} lines  {}/{} -- {}/{}",
             filename,
             self.active_buffer.number_of_lines(),
             self.cursor_controller.position.line + self.line_offset + 1,
             self.cursor_controller.position.column + 1,
+            self.cursor_controller.frame_columns,
+            self.cursor_controller.frame_lines,
         );
 
         self.editor_contents.push_str(&info);
@@ -155,14 +157,14 @@ impl Frame {
     }
 
     pub fn scroll_left(&mut self) {
-        self.cursor_controller.move_cursor_left();
-
         if self.cursor_controller.position.column == 0 {
             if self.column_offset == 0 {
                 return
             }
 
             self.column_offset -= 1;
+        } else {
+            self.cursor_controller.move_cursor_left();
         }
     }
 
@@ -170,10 +172,11 @@ impl Frame {
         if let Some(current_line) = self.current_buffer_line() {
             if  current_line.line.len() > 0
                 && self.cursor_controller.position.column < current_line.line.len() - 1 {
-                    self.cursor_controller.move_cursor_right();
-                    if self.cursor_controller.position.column == self.cursor_controller.frame_columns {
+                    if self.cursor_controller.position.column + 1 == self.cursor_controller.frame_columns {
                         eprintln!("At the end {}, {}", self.cursor_controller.position.column, self.cursor_controller.frame_columns);
                         self.column_offset += 1;
+                    } else {
+                        self.cursor_controller.move_cursor_right();
                     }
                 }
         }
