@@ -7,16 +7,16 @@ pub struct CursorPosition {
 
 pub struct CursorController {
     pub position: CursorPosition,
-    pub screen_columns: usize,
-    pub screen_rows: usize,
+    pub frame_columns: usize,
+    pub frame_rows: usize,
 }
 
 impl CursorController {
     pub fn new(win_size: (usize, usize)) -> Self {
         Self {
             position: CursorPosition { column: 0, line: 0 },
-            screen_columns: win_size.0,
-            screen_rows: win_size.1,
+            frame_columns: win_size.0,
+            frame_rows: win_size.1,
         }
     }
 
@@ -27,13 +27,13 @@ impl CursorController {
     }
 
     pub fn move_cursor_down(&mut self) {
-        if self.position.line < self.screen_rows {
+        if self.position.line < self.frame_rows {
             self.position.line += 1;
         }
     }
 
     pub fn move_cursor_right(&mut self) {
-        if self.position.column < self.screen_columns {
+        if self.position.column < self.frame_columns {
             self.position.column += 1;
         }
     }

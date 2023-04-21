@@ -19,8 +19,8 @@ mod prelude {
 
 
     pub const VERSION: &str = "0.0.1";
-    pub const CURSOR_MARGIN: usize = 5;
-    pub const GUTTER_WIDTH: usize = 4;
+    pub const _CURSOR_MARGIN: usize = 5;
+    pub const GUTTER_WIDTH: usize = 6;
 
     pub use crate::reader::*;
     pub use crate::cleanup::*;
@@ -75,8 +75,6 @@ impl Editor {
         self.process_keypress()
     }
 }
-
-
 
 fn main() -> crossterm::Result<()> {
     let _clean_up = CleanUp;

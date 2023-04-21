@@ -9,7 +9,6 @@ pub struct BufferLine {
 pub struct Buffer {
     lines: Vec<BufferLine>,
     pub file_path: Option<PathBuf>,
-    pub line_offset: usize,
 }
 
 impl Buffer {
@@ -19,14 +18,12 @@ impl Buffer {
                 Self {
                     lines: Self::build_welcome_buffer(),
                     file_path: None,
-                    line_offset: 0,
                 }
             },
             Some(file) => {
                 Self {
                     lines: Self::read_file(&file),
                     file_path: Some(file.into()),
-                    line_offset: 0,
                 }
             }
         }
@@ -88,25 +85,8 @@ impl Buffer {
         Some(&self.lines[at])
     }
 
-    pub fn get_line_with_offset(&self, at: usize) -> Option<&BufferLine> {
-        if self.line_offset + at >= self.number_of_lines() {
-            return None;
-        }
-        Some(&self.lines[at + self.line_offset])
-    }
-
     pub fn is_blank(&self) -> bool {
         self.number_of_lines() == 0
     }
 
-    pub fn scroll_down(&mut self) {
-        self.line_offset += 1;
-    }
-
-    pub fn scroll_up(&mut self) {
-        if self.line_offset == 0 {
-            return
-        }
-        self.line_offset -= 1;
-    }
 }
