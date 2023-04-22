@@ -4,13 +4,14 @@ mod frame;
 mod buffer;
 mod editor_contents;
 mod cursor_controller;
+mod key_handler;
 
 mod prelude {
     pub use std::time::Duration;
     pub use crossterm::event::*;
     pub use std::path::Path;
     pub use crossterm::{cursor, event, execute, queue, terminal, style};
-    pub use crossterm::terminal::{*, ClearType};
+    pub use crossterm::terminal::{*, ClearType, EnterAlternateScreen, LeaveAlternateScreen };
     pub use crossterm::event::*;
     pub use std::io::{stdout, self};
     pub use std::io::Write;
@@ -28,6 +29,7 @@ mod prelude {
     pub use crate::buffer::*;
     pub use crate::editor_contents::*;
     pub use crate::cursor_controller::*;
+    pub use crate::key_handler::*;
 }
 
 use prelude::*;
@@ -55,15 +57,12 @@ impl Editor {
     }
 
     fn process_keypress(&mut self) -> crossterm::Result<bool> {
-        match self.reader.read_key()? {
-            KeyEvent {
-                code: KeyCode::Char('q'),
-                modifiers: event::KeyModifiers::CONTROL,
-            } => return Ok(false),
-            KeyEvent {
-                code: KeyCode::Char(val @ ('h' | 'j' | 'k' | 'l')),
-                modifiers: event::KeyModifiers::NONE,
-            } => self.frame.move_cursor(val),
+        match KeyHandler::process_key(self.reader.read_key()?) {
+            EditorCommand::QuitProgram => return Ok(false),
+            EditorCommand::MoveCursorLeft => self.frame.move_cursor_left(),
+            EditorCommand::MoveCursorRight => self.frame.move_cursor_right(),
+            EditorCommand::MoveCursorUp => self.frame.move_cursor_up(),
+            EditorCommand::MoveCursorDown => self.frame.move_cursor_down(),
             _ => {},
         }
 
@@ -89,7 +88,11 @@ fn main() -> crossterm::Result<()> {
     };
 
     terminal::enable_raw_mode()?;
+    execute!(stdout(), EnterAlternateScreen)?;
+
     let mut editor = Editor::new(file);
     while editor.run()? {}
+
+    execute!(stdout(), LeaveAlternateScreen)?;
     Ok(())
 }

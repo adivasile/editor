@@ -135,7 +135,7 @@ impl Frame {
         }
     }
 
-    pub fn scroll_down(&mut self) {
+    pub fn move_cursor_down(&mut self) {
         if self.cursor_controller.position.line >= self.size.text_lines - 1 {
             self.line_offset += 1;
         } else {
@@ -144,7 +144,7 @@ impl Frame {
         self.snap_to_eol();
     }
 
-    pub fn scroll_up(&mut self) {
+    pub fn move_cursor_up(&mut self) {
         if self.cursor_controller.position.line <= 0 {
             if self.line_offset == 0 {
                 return
@@ -156,7 +156,7 @@ impl Frame {
         self.snap_to_eol();
     }
 
-    pub fn scroll_left(&mut self) {
+    pub fn move_cursor_left(&mut self) {
         if self.cursor_controller.position.column == 0 {
             if self.column_offset == 0 {
                 return
@@ -168,7 +168,7 @@ impl Frame {
         }
     }
 
-    pub fn scroll_right(&mut self) {
+    pub fn move_cursor_right(&mut self) {
         if let Some(current_line) = self.current_buffer_line() {
             if  current_line.line.len() > 0
                 && self.cursor_controller.position.column < current_line.line.len() - 1 {
@@ -182,16 +182,6 @@ impl Frame {
                         self.cursor_controller.move_cursor_right();
                     }
                 }
-        }
-    }
-
-    pub fn move_cursor(&mut self, direction: char) {
-        match direction {
-            'h' => self.scroll_left(),
-            'j' => self.scroll_down(),
-            'k' => self.scroll_up(),
-            'l' => self.scroll_right(),
-            _ => unimplemented!(),
         }
     }
 }
