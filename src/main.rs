@@ -35,7 +35,7 @@ use prelude::*;
 
 struct Editor {
     reader: Reader,
-    output: Frame,
+    frame: Frame,
 }
 
 impl Editor {
@@ -46,7 +46,7 @@ impl Editor {
 
         Self {
             reader: Reader,
-            output: Frame::new(
+            frame: Frame::new(
                 win_size.0,
                 win_size.1,
                 file,
@@ -63,7 +63,7 @@ impl Editor {
             KeyEvent {
                 code: KeyCode::Char(val @ ('h' | 'j' | 'k' | 'l')),
                 modifiers: event::KeyModifiers::NONE,
-            } => self.output.move_cursor(val),
+            } => self.frame.move_cursor(val),
             _ => {},
         }
 
@@ -71,7 +71,7 @@ impl Editor {
     }
 
     fn run(&mut self) -> crossterm::Result<bool> {
-        self.output.refresh_screen()?;
+        self.frame.refresh_screen()?;
         self.process_keypress()
     }
 }

@@ -16,7 +16,7 @@ impl FrameSize {
             lines,
             gutter_width: GUTTER_WIDTH,
             text_columns: columns - GUTTER_WIDTH,
-            text_lines: lines - 1,
+            text_lines: lines,
         }
     }
 }
@@ -43,7 +43,7 @@ impl Frame {
         }
     }
 
-    pub fn draw_rows(&mut self) {
+    fn draw_rows(&mut self) {
         if self.active_buffer.is_blank() {
             self.editor_contents.push_welcome_message(self.size.text_columns, self.size.text_lines);
             self.editor_contents.push_str("\r\n");
@@ -121,11 +121,11 @@ impl Frame {
         self.editor_contents.flush()
     }
 
-    pub fn current_buffer_line(&self) -> Option<&BufferLine> {
+    fn current_buffer_line(&self) -> Option<&BufferLine> {
         self.active_buffer.get_line(self.cursor_controller.position.line + self.line_offset)
     }
 
-    pub fn snap_to_eol(&mut self) {
+    fn snap_to_eol(&mut self) {
         if let Some(current_line) = self.current_buffer_line() {
             if current_line.line.len() == 0 {
                 self.cursor_controller.move_cursor_to_column(0);
@@ -173,8 +173,11 @@ impl Frame {
             if  current_line.line.len() > 0
                 && self.cursor_controller.position.column < current_line.line.len() - 1 {
                     if self.cursor_controller.position.column + 1 == self.cursor_controller.frame_columns {
-                        eprintln!("At the end {}, {}", self.cursor_controller.position.column, self.cursor_controller.frame_columns);
-                        self.column_offset += 1;
+                        eprintln!("Line len {}, Col offset {}", current_line.line.len(), self.column_offset);
+
+                        if self.column_offset + self.cursor_controller.position.column < current_line.line.len() - 1 {
+                            self.column_offset += 1;
+                        }
                     } else {
                         self.cursor_controller.move_cursor_right();
                     }
