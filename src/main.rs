@@ -5,6 +5,7 @@ mod buffer;
 mod editor_contents;
 mod cursor_controller;
 mod key_handler;
+mod renderer;
 
 mod prelude {
     pub use std::time::Duration;
@@ -30,14 +31,25 @@ mod prelude {
     pub use crate::editor_contents::*;
     pub use crate::cursor_controller::*;
     pub use crate::key_handler::*;
+    pub use crate::renderer::*;
 }
 
 use prelude::*;
 
 
+pub enum Mode {
+    Normal,
+    Command,
+}
+
 struct Editor {
     reader: Reader,
     frame: Frame,
+    mode: Mode,
+    editor_contents: EditorContents,
+    current_command: String,
+    lines: usize,
+    columns: usize,
 }
 
 impl Editor {
@@ -47,30 +59,90 @@ impl Editor {
             .unwrap();
 
         Self {
+            editor_contents: EditorContents::new(),
+            mode: Mode::Normal,
             reader: Reader,
             frame: Frame::new(
                 win_size.0,
-                win_size.1,
+                win_size.1 - 1,
                 file,
             ),
+            current_command: String::new(),
+            columns: win_size.0,
+            lines: win_size.1,
         }
     }
 
     fn process_keypress(&mut self) -> crossterm::Result<bool> {
-        match KeyHandler::process_key(self.reader.read_key()?) {
+        match KeyHandler::process_key(self.reader.read_key()?, &self.mode) {
             EditorCommand::QuitProgram => return Ok(false),
             EditorCommand::MoveCursorLeft => self.frame.move_cursor_left(),
             EditorCommand::MoveCursorRight => self.frame.move_cursor_right(),
             EditorCommand::MoveCursorUp => self.frame.move_cursor_up(),
             EditorCommand::MoveCursorDown => self.frame.move_cursor_down(),
+            EditorCommand::SetCommandMode => self.mode = Mode::Command,
+            EditorCommand::SetNormalMode => {
+                self.mode = Mode::Normal;
+                self.current_command = String::new();
+            },
+            EditorCommand::WriteCommand(c) => {
+                self.current_command.push(c)
+            },
+            EditorCommand::DeleteCommandChar => {
+                self.current_command.pop();
+            },
+            EditorCommand::ExecuteCommand => {
+                match self.current_command.as_str() {
+                    "quit" => {
+                        return Ok(false)
+                    },
+                    "q" => {
+                        return Ok(false)
+                    },
+                    _ => {},
+                }
+            },
             _ => {},
         }
 
         Ok(true)
     }
 
+    fn draw_command_line(&mut self) {
+        if let Mode::Command = self.mode {
+            let cmd = format!(":{}", self.current_command);
+            self.editor_contents.push_str(&cmd);
+        }
+    }
+
+    pub fn refresh_screen(&mut self) -> crossterm::Result<()> {
+        queue!(
+            self.editor_contents,
+            terminal::Clear(ClearType::All),
+            cursor::Hide,
+            cursor::MoveTo(0, 0)
+        )?;
+        self.frame.draw_rows(&mut self.editor_contents);
+        self.frame.draw_status_bar(&mut self.editor_contents);
+        self.draw_command_line();
+        let (cursor_row, cursor_line) = match self.mode {
+            Mode::Normal => {
+                self.frame.cursor_controller.absolute_coords()
+            },
+            Mode::Command => {
+                (self.current_command.len() + 1, self.lines)
+            }
+        };
+        queue!(
+            self.editor_contents,
+            cursor::MoveTo(cursor_row as u16, cursor_line as u16),
+            cursor::Show,
+        )?;
+        self.editor_contents.flush()
+    }
+
     fn run(&mut self) -> crossterm::Result<bool> {
-        self.frame.refresh_screen()?;
+        self.refresh_screen()?;
         self.process_keypress()
     }
 }

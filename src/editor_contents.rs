@@ -20,6 +20,11 @@ impl EditorContents {
         self.content.push_str(string)
     }
 
+    pub fn push_line(&mut self, string: &str) {
+        self.content.push_str(string);
+        self.push_str("\r\n");
+    }
+
     pub fn push_welcome_message(&mut self, screen_columns: usize, screen_rows: usize) {
         let mut welcome = format!("Editor -- Version {}", VERSION);
         if welcome.len() > screen_columns {

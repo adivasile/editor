@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::Mode;
 
 pub struct KeyHandler;
 
@@ -8,11 +9,23 @@ pub enum EditorCommand {
     MoveCursorLeft,
     MoveCursorUp,
     MoveCursorDown,
+    SetCommandMode,
+    SetNormalMode,
     Noop,
+    WriteCommand(char),
+    DeleteCommandChar,
+    ExecuteCommand,
 }
 
 impl KeyHandler {
-    pub fn process_key(key_event: KeyEvent) -> EditorCommand {
+    pub fn process_key(key_event: KeyEvent, mode: &Mode) -> EditorCommand {
+        match mode {
+            Mode::Normal => Self::process_normal_mode_key(key_event),
+            Mode::Command => Self::process_command_mode_key(key_event),
+        }
+    }
+
+    pub fn process_normal_mode_key(key_event: KeyEvent) -> EditorCommand {
         match key_event {
             KeyEvent {
                 code: KeyCode::Char('q'),
@@ -34,6 +47,32 @@ impl KeyHandler {
                 code: KeyCode::Char('l'),
                 modifiers: event::KeyModifiers::NONE,
             } => EditorCommand::MoveCursorRight,
+            KeyEvent {
+                code: KeyCode::Char(':'),
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::SetCommandMode,
+            _ => EditorCommand::Noop,
+        }
+    }
+
+    pub fn process_command_mode_key(key_event: KeyEvent) -> EditorCommand {
+        match key_event {
+            KeyEvent {
+                code: KeyCode::Esc,
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::SetNormalMode,
+            KeyEvent {
+                code: KeyCode::Backspace,
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::DeleteCommandChar,
+            KeyEvent {
+                code: KeyCode::Enter,
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::ExecuteCommand,
+            KeyEvent { 
+                code: KeyCode::Char(c),
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::WriteCommand(c),
             _ => EditorCommand::Noop,
         }
     }

@@ -23,8 +23,7 @@ impl FrameSize {
 
 pub struct Frame {
     size: FrameSize,
-    editor_contents: EditorContents,
-    cursor_controller: CursorController,
+    pub cursor_controller: CursorController,
     active_buffer: Buffer,
     line_offset: usize,
     column_offset: usize,
@@ -34,7 +33,6 @@ impl Frame {
     pub fn new(columns: usize, lines: usize, file: Option<PathBuf>) -> Self {
         let size = FrameSize::new(columns, lines);
         Self {
-            editor_contents: EditorContents::new(),
             cursor_controller: CursorController::new((size.text_columns, size.text_lines)),
             active_buffer: Buffer::new(file),
             size,
@@ -43,10 +41,10 @@ impl Frame {
         }
     }
 
-    fn draw_rows(&mut self) {
+    pub fn draw_rows(&mut self, editor_contents: &mut EditorContents) {
         if self.active_buffer.is_blank() {
-            self.editor_contents.push_welcome_message(self.size.text_columns, self.size.text_lines);
-            self.editor_contents.push_str("\r\n");
+            editor_contents.push_welcome_message(self.size.text_columns, self.size.text_lines);
+            editor_contents.push_str("\r\n");
             return
         }
 
@@ -61,18 +59,16 @@ impl Frame {
                     &buffer_line.line[self.column_offset..max_len + self.column_offset],
                     width = self.size.gutter_width - 1,
                 );
-                self.editor_contents.push_str(&render_line);
+                editor_contents.push_line(&render_line);
             } else {
-                self.editor_contents.push('~');
+                editor_contents.push_line("~");
             }
 
-            self.editor_contents.push_str("\r\n");
         }
     }
 
-    fn draw_status_bar(&mut self) {
-        self.editor_contents
-            .push_str(&style::Attribute::Reverse.to_string());
+    pub fn draw_status_bar(&mut self, editor_contents: &mut EditorContents) {
+        editor_contents.push_str(&style::Attribute::Reverse.to_string());
 
         let filename = self.active_buffer.file_path.as_ref()
             .and_then(|path| path.file_name())
@@ -89,36 +85,17 @@ impl Frame {
             self.cursor_controller.frame_lines,
         );
 
-        self.editor_contents.push_str(&info);
+        editor_contents.push_str(&info);
 
         for _i in info.len()..self.size.columns {
-            self.editor_contents.push(' ')
+            editor_contents.push(' ')
         }
-        self.editor_contents
-            .push_str(&style::Attribute::Reset.to_string());
+        editor_contents.push_str(&style::Attribute::Reset.to_string());
     }
 
     pub fn clear_screen() -> crossterm::Result<()> {
         execute!(stdout(), terminal::Clear(ClearType::All))?;
         execute!(stdout(), cursor::MoveTo(GUTTER_WIDTH as u16, 0 as u16))
-    }
-
-    pub fn refresh_screen(&mut self) -> crossterm::Result<()> {
-        queue!(
-            self.editor_contents,
-            terminal::Clear(ClearType::All),
-            cursor::Hide,
-            cursor::MoveTo(0, 0)
-        )?;
-        self.draw_rows();
-        self.draw_status_bar();
-        let (cursor_row, cursor_line) = self.cursor_controller.absolute_coords();
-        queue!(
-            self.editor_contents,
-            cursor::MoveTo(cursor_row as u16, cursor_line as u16),
-            cursor::Show,
-        )?;
-        self.editor_contents.flush()
     }
 
     fn current_buffer_line(&self) -> Option<&BufferLine> {
