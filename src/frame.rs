@@ -145,6 +145,45 @@ impl Frame {
         }
     }
 
+    pub fn jump_to_start_of_word_forward(&mut self) {
+        if let Some(current_line) = self.current_buffer_line() {
+            if current_line.line.len() > 0 {
+                let current_cursor_column = self.cursor_controller.position.column;
+                let from_cursor = &current_line.line[current_cursor_column..];
+                let jump_to_idx = from_cursor.find(' ');
+                if let Some(idx) = jump_to_idx {
+                    self.cursor_controller.position.column += idx + 1;
+                }
+            }
+        }
+    }
+
+    pub fn jump_to_start_of_word_backward(&mut self) {
+        if let Some(current_line) = self.current_buffer_line() {
+            if current_line.line.len() > 0 {
+                let current_cursor_column = self.cursor_controller.position.column;
+                let until_cursor = &current_line.line[..current_cursor_column];
+                let jump_to_idx = until_cursor.rfind(' ');
+                if let Some(idx) = jump_to_idx {
+                    self.cursor_controller.position.column = idx + 1;
+                }
+            }
+        }
+    }
+
+    pub fn jump_to_end_of_word_forward(&mut self) {
+        if let Some(current_line) = self.current_buffer_line() {
+            if current_line.line.len() > 0 {
+                let current_cursor_column = self.cursor_controller.position.column;
+                let from_cursor = &current_line.line[current_cursor_column..];
+                let jump_to_idx = from_cursor.find(' ');
+                if let Some(idx) = jump_to_idx {
+                    self.cursor_controller.position.column += idx - 1;
+                }
+            }
+        }
+    }
+
     pub fn move_cursor_right(&mut self) {
         if let Some(current_line) = self.current_buffer_line() {
             if  current_line.line.len() > 0

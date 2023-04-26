@@ -3,6 +3,11 @@ use crate::Mode;
 
 pub struct KeyHandler;
 
+pub enum Direction {
+    Forward,
+    Backward,
+}
+
 pub enum EditorCommand {
     QuitProgram,
     MoveCursorRight,
@@ -15,6 +20,8 @@ pub enum EditorCommand {
     WriteCommand(char),
     DeleteCommandChar,
     ExecuteCommand,
+    JumpStartOfWord(Direction),
+    JumpEndOfWord(Direction),
 }
 
 impl KeyHandler {
@@ -51,6 +58,18 @@ impl KeyHandler {
                 code: KeyCode::Char(':'),
                 modifiers: event::KeyModifiers::NONE,
             } => EditorCommand::SetCommandMode,
+            KeyEvent {
+                code: KeyCode::Char('w'),
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::JumpStartOfWord(Direction::Forward),
+            KeyEvent {
+                code: KeyCode::Char('b'),
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::JumpStartOfWord(Direction::Backward),
+            KeyEvent {
+                code: KeyCode::Char('e'),
+                modifiers: event::KeyModifiers::NONE,
+            } => EditorCommand::JumpEndOfWord(Direction::Forward),
             _ => EditorCommand::Noop,
         }
     }

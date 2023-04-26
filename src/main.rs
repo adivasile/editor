@@ -102,6 +102,15 @@ impl Editor {
                     _ => {},
                 }
             },
+            EditorCommand::JumpStartOfWord(Direction::Forward) => {
+                self.frame.jump_to_start_of_word_forward()
+            },
+            EditorCommand::JumpStartOfWord(Direction::Backward) => {
+                self.frame.jump_to_start_of_word_backward()
+            },
+            EditorCommand::JumpEndOfWord(Direction::Forward) => {
+                self.frame.jump_to_end_of_word_forward()
+            },
             _ => {},
         }
 
