@@ -6,6 +6,18 @@ pub struct BufferLine {
     pub line: String,
 }
 
+impl BufferLine {
+    pub fn line_slice(&self, start: usize, end: usize) -> &str {
+        if start > self.line.len() {
+            return "";
+        }
+
+        let max_len = cmp::min(end, self.line.len());
+
+        &self.line[start..max_len]
+    }
+}
+
 pub struct Buffer {
     lines: Vec<BufferLine>,
     pub file_path: Option<PathBuf>,

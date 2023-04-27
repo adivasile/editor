@@ -15,7 +15,7 @@ impl FrameSize {
             columns,
             lines,
             gutter_width: GUTTER_WIDTH,
-            text_columns: columns - GUTTER_WIDTH,
+            text_columns: columns - GUTTER_WIDTH - 1,
             text_lines: lines,
         }
     }
@@ -41,30 +41,42 @@ impl Frame {
         }
     }
 
-    pub fn draw_rows(&mut self, editor_contents: &mut EditorContents) {
+    pub fn draw_rows(&mut self, editor_contents: &mut EditorContents) -> crossterm::Result<()> {
         if self.active_buffer.is_blank() {
             editor_contents.push_welcome_message(self.size.text_columns, self.size.text_lines);
             editor_contents.push_str("\r\n");
-            return
+            return Ok(())
         }
 
         for i in 0..self.size.text_lines {
             if let Some(buffer_line) = self.active_buffer.get_line(i + self.line_offset) {
-                let max_len = cmp::min(self.size.text_columns, buffer_line.line.len());
-
+                let line =  buffer_line.line_slice(self.column_offset, self.column_offset + self.size.text_columns);
 
                 let render_line = format!(
                     "{:width$} {}",
                     buffer_line.line_number,
-                    &buffer_line.line[self.column_offset..max_len + self.column_offset],
+                    &line,
                     width = self.size.gutter_width - 1,
                 );
+
                 editor_contents.push_line(&render_line);
+
+                queue!(
+                    editor_contents,
+                    cursor::SavePosition,
+                    cursor::MoveTo((self.size.columns) as u16, i as u16),
+                    style::SetAttribute(style::Attribute::Reverse),
+                    style::Print(' '),
+                    cursor::RestorePosition,
+                    style::SetAttribute(style::Attribute::Reset),
+                )?;
             } else {
                 editor_contents.push_line("~");
             }
 
         }
+
+        return Ok(())
     }
 
     pub fn draw_status_bar(&mut self, editor_contents: &mut EditorContents) {
