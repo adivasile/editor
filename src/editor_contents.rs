@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Debug)]
 pub struct EditorContents {
-    content: String,
+    pub content: String,
 }
 
 impl EditorContents {
@@ -60,9 +60,23 @@ impl io::Write for EditorContents {
     }
 
     fn flush(&mut self) -> io::Result<()> {
+        eprintln!("Buffer total size: {}", self.content.len());
         let out = write!(stdout(), "{}", self.content);
         stdout().flush()?;
         self.content.clear();
         out
+    }
+}
+
+impl fmt::Write for EditorContents {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.push_str(s);
+        Ok(())
+    }
+}
+
+impl Command for EditorContents {
+    fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        f.write_str(&self.content)
     }
 }

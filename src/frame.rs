@@ -1,7 +1,9 @@
-use crate::prelude::*;
+use crate::{prelude::*, editor_contents};
 
 #[derive(Debug)]
 pub struct FrameSize {
+    pub start_column: usize,
+    pub start_line: usize,
     pub columns: usize,
     pub lines: usize,
     pub gutter_width: usize,
@@ -10,8 +12,10 @@ pub struct FrameSize {
 }
 
 impl FrameSize {
-    fn new(columns: usize, lines: usize) -> Self {
+    fn new(start_column: usize, start_line: usize, columns: usize, lines: usize) -> Self {
         Self {
+            start_column,
+            start_line,
             columns,
             lines,
             gutter_width: GUTTER_WIDTH,
@@ -22,7 +26,7 @@ impl FrameSize {
 }
 
 pub struct Frame {
-    size: FrameSize,
+    pub size: FrameSize,
     pub cursor_controller: CursorController,
     active_buffer: Buffer,
     line_offset: usize,
@@ -30,8 +34,8 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn new(columns: usize, lines: usize, file: Option<PathBuf>) -> Self {
-        let size = FrameSize::new(columns, lines);
+    pub fn new(start_column: usize, start_line: usize ,columns: usize, lines: usize, file: Option<PathBuf>) -> Self {
+        let size = FrameSize::new(start_column, start_line, columns, lines);
         Self {
             cursor_controller: CursorController::new((size.text_columns, size.text_lines)),
             active_buffer: Buffer::new(file),
@@ -41,12 +45,8 @@ impl Frame {
         }
     }
 
-    pub fn draw_rows(&mut self, editor_contents: &mut EditorContents) -> crossterm::Result<()> {
-        if self.active_buffer.is_blank() {
-            editor_contents.push_welcome_message(self.size.text_columns, self.size.text_lines);
-            editor_contents.push_str("\r\n");
-            return Ok(())
-        }
+    pub fn draw_rows(&self) -> crossterm::Result<EditorContents> {
+        let mut editor_contents = EditorContents::new();
 
         for i in 0..self.size.text_lines {
             if let Some(buffer_line) = self.active_buffer.get_line(i + self.line_offset) {
@@ -58,28 +58,35 @@ impl Frame {
                     &line,
                     width = self.size.gutter_width - 1,
                 );
-
-                editor_contents.push_line(&render_line);
+                
 
                 queue!(
                     editor_contents,
+                    cursor::MoveTo((self.size.start_column) as u16, (self.size.start_line + i) as u16),
+                    style::Print(&render_line),
                     cursor::SavePosition,
                     cursor::MoveTo((self.size.columns) as u16, i as u16),
                     style::SetAttribute(style::Attribute::Reverse),
                     style::Print(' '),
-                    cursor::RestorePosition,
                     style::SetAttribute(style::Attribute::Reset),
                 )?;
+
             } else {
-                editor_contents.push_line("~");
+                queue!(
+                    editor_contents,
+                    style::Print("~"),
+                    cursor::MoveToNextLine(1),
+                )?;
             }
 
         }
 
-        return Ok(())
+        Ok(editor_contents)
     }
 
-    pub fn draw_status_bar(&mut self, editor_contents: &mut EditorContents) {
+    pub fn draw_status_bar(&self) -> crossterm::Result<EditorContents> {
+        let mut editor_contents = EditorContents::new();
+
         editor_contents.push_str(&style::Attribute::Reverse.to_string());
 
         let filename = self.active_buffer.file_path.as_ref()
@@ -87,7 +94,7 @@ impl Frame {
             .and_then(|name| name.to_str())
             .unwrap_or("[No name]");
 
-        let info = format!(
+        let render_line = format!(
             "{} -- {} lines  {}/{} -- {}/{}",
             filename,
             self.active_buffer.number_of_lines(),
@@ -97,12 +104,16 @@ impl Frame {
             self.cursor_controller.frame_lines,
         );
 
-        editor_contents.push_str(&info);
+        queue!( 
+            editor_contents,
+            cursor::MoveTo((self.size.start_column) as u16, (self.size.lines) as u16),
+            style::Print(&render_line),
+            style::Print(" ".repeat(self.size.columns - render_line.len())),
+            style::SetAttribute(style::Attribute::Reset),
+        )?;
 
-        for _i in info.len()..self.size.columns {
-            editor_contents.push(' ')
-        }
-        editor_contents.push_str(&style::Attribute::Reset.to_string());
+        
+        Ok(editor_contents)
     }
 
     pub fn clear_screen() -> crossterm::Result<()> {
@@ -170,6 +181,23 @@ impl Frame {
         }
     }
 
+    pub fn move_cursor_right(&mut self) {
+        if let Some(current_line) = self.current_buffer_line() {
+            if  current_line.line.len() > 0
+                && self.cursor_controller.position.column < current_line.line.len() - 1 {
+                    if self.cursor_controller.position.column + 1 == self.cursor_controller.frame_columns {
+                        eprintln!("Line len {}, Col offset {}", current_line.line.len(), self.column_offset);
+
+                        if self.column_offset + self.cursor_controller.position.column < current_line.line.len() - 1 {
+                            self.column_offset += 1;
+                        }
+                    } else {
+                        self.cursor_controller.move_cursor_right();
+                    }
+                }
+        }
+    }
+
     pub fn jump_to_start_of_word_backward(&mut self) {
         if let Some(current_line) = self.current_buffer_line() {
             if current_line.line.len() > 0 {
@@ -193,23 +221,6 @@ impl Frame {
                     self.cursor_controller.position.column += idx - 1;
                 }
             }
-        }
-    }
-
-    pub fn move_cursor_right(&mut self) {
-        if let Some(current_line) = self.current_buffer_line() {
-            if  current_line.line.len() > 0
-                && self.cursor_controller.position.column < current_line.line.len() - 1 {
-                    if self.cursor_controller.position.column + 1 == self.cursor_controller.frame_columns {
-                        eprintln!("Line len {}, Col offset {}", current_line.line.len(), self.column_offset);
-
-                        if self.column_offset + self.cursor_controller.position.column < current_line.line.len() - 1 {
-                            self.column_offset += 1;
-                        }
-                    } else {
-                        self.cursor_controller.move_cursor_right();
-                    }
-                }
         }
     }
 }

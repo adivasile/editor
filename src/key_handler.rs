@@ -22,6 +22,8 @@ pub enum EditorCommand {
     ExecuteCommand,
     JumpStartOfWord(Direction),
     JumpEndOfWord(Direction),
+    GoToRightFrame,
+    GoToLeftFrame,
 }
 
 impl KeyHandler {
@@ -33,6 +35,7 @@ impl KeyHandler {
     }
 
     pub fn process_normal_mode_key(key_event: KeyEvent) -> EditorCommand {
+        eprintln!("{:?}", key_event);
         match key_event {
             KeyEvent {
                 code: KeyCode::Char('q'),
@@ -70,6 +73,14 @@ impl KeyHandler {
                 code: KeyCode::Char('e'),
                 modifiers: event::KeyModifiers::NONE,
             } => EditorCommand::JumpEndOfWord(Direction::Forward),
+            KeyEvent {
+                code: KeyCode::Char('y'),
+                modifiers: event::KeyModifiers::CONTROL,
+            } => EditorCommand::GoToRightFrame,
+            KeyEvent {
+                code: KeyCode::Char('p'),
+                modifiers: event::KeyModifiers::CONTROL,
+            } => EditorCommand::GoToLeftFrame,
             _ => EditorCommand::Noop,
         }
     }
